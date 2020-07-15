@@ -171,9 +171,27 @@ int main(void)
   PRINTF("LORA_JOIN()... wait 10s \n\r");
   LORA_Join(); //this function take ~10s, how can i wait till finished
 
+  LoraStartTx(TX_ON_TIMER) ;
   /* main loop*/
   while (1)
   {
+
+	  if (AppProcessRequest == LORA_SET)
+	  {
+		/*get uart msg (ultrasonic sensor)*/
+
+		/*get i2c msg (pressure sensor)*/
+
+		/*reset notification flag*/
+		AppProcessRequest = LORA_RESET;
+		/*SendMsg*/
+		sendMsg(NULL);
+	  }
+
+
+
+
+
     /* Handle UART commands */
     CMD_Process();
 
@@ -233,10 +251,10 @@ static void LORA_ConfirmClass(DeviceClass_t Class)
   PRINTF("switch to class %c done\n\r", "ABC"[Class]);
 }
 
-static void LORA_TxNeeded(void)
-{
-  PRINTF("Network Server is asking for an uplink transmission\n\r");
-}
+//static void LORA_TxNeeded(void)
+//{
+//  PRINTF("Network Server is asking for an uplink transmission\n\r");
+//}
 
 /**
   * @brief This function return the battery level
@@ -274,3 +292,66 @@ static void LORA_McpsDataConfirm(void)
 }
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+/**
+ * Send a message to TTN
+ */
+static void sendMsg(void *context){
+	PRINTF("Main.c : sendMsg() \n\r");
+
+	/*Variables to send*/
+	int16_t snowHeight = 12;
+	uint8_t batteryLevel;
+
+	 if (LORA_JoinStatus() != LORA_SET)
+	  {
+	    /*Not joined, try again later*/
+		// PRINTF("re-join\n\r");
+	    LORA_Join();
+	    return;
+	  }
+
+	batteryLevel = LORA_GetBatteryLevel();
+
+	AppData.Port = LORAWAN_APP_PORT;
+	uint32_t i = 0;
+
+	AppData.Buff[i++] = batteryLevel;
+	AppData.Buff[i++] = snowHeight;
+
+	AppData.BuffSize = i;
+
+	LORA_send(&AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+
+}
+
+static void OnTxTimerEvent(void *context)
+{
+	PRINTF("OnTxTimerEvent \n\r");
+  /*Wait for next tx slot*/
+  TimerStart(&TxTimer);
+
+  AppProcessRequest = LORA_SET;
+}
+
+static void LoraStartTx(TxEventType_t EventType)
+{
+	PRINTF("LoraStartTx \n\r");
+
+  if (EventType == TX_ON_TIMER)
+  {
+    /* send everytime timer elapses */
+    TimerInit(&TxTimer, OnTxTimerEvent);
+    TimerSetValue(&TxTimer,  APP_TX_DUTYCYCLE);
+    OnTxTimerEvent(NULL);
+  }
+
+}
+static void LORA_TxNeeded(void)
+{
+	PRINTF("LORA_TxNeeded \n\r");
+
+  AppData.BuffSize = 0;
+  AppData.Port = LORAWAN_APP_PORT;
+
+  LORA_send(&AppData, LORAWAN_UNCONFIRMED_MSG);
+}
