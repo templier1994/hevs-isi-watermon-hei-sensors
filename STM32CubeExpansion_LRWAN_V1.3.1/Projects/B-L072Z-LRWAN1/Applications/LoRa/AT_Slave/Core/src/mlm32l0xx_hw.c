@@ -224,6 +224,8 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
 
+ // RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
   /* Enable HSE Oscillator and Activate PLL with HSE as source */
   RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSEState            = RCC_HSE_OFF;
@@ -257,6 +259,14 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
+ // PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+ //   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+ //   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+ //   {
+ //     Error_Handler();
+ //   }
+
 }
 /**
   * @brief This function return a random seed

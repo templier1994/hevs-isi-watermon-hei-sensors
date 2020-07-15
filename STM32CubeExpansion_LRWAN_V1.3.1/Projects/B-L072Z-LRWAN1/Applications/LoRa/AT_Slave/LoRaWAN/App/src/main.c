@@ -37,6 +37,7 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include "at.h"
 #include "lora.h"
 #include "stdio.h"
+#include "stm32l0xx_hal.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
@@ -121,6 +122,16 @@ LoraFlagStatus AppProcessRequest = LORA_RESET;
 
 /* Private functions ---------------------------------------------------------*/
 
+/* UART ultrasound sensors*/
+UART_HandleTypeDef huart1;
+
+static void MX_USART1_UART_Init(void);
+
+#define rxBuf_size 		5 	//5
+uint8_t rxBuf[rxBuf_size];
+HAL_StatusTypeDef UART1status;
+uint8_t toto = 0;
+
 /**
  * @brief  Main program
  * @param  None
@@ -145,32 +156,57 @@ int main(void)
 	 x.Mode  = GPIO_MODE_OUTPUT_PP;
 
 	 HAL_GPIO_Init(GPIOA, &x);
-	 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
+	 HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
 	 /*pims*/
 
 
   /* Configure Debug mode */
-  DBG_Init();
+//  DBG_Init();
 
-  /* USER CODE BEGIN 1 */
+
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+	Error_Handler();
+  }
+  //USARTx_TX_GPIO_CLK_ENABLE();
+  //USARTx_RX_GPIO_CLK_ENABLE();
+
+  MX_USART1_UART_Init();
+
+
+
+  PRINTF("end MX_USART1_UART_Init \n\r");
+
+
   CMD_Init();
   /*Disable standby mode*/
-  LPM_SetOffMode(LPM_APPLI_Id, LPM_Disable);
+//  LPM_SetOffMode(LPM_APPLI_Id, LPM_Disable);
 
   PPRINTF("ATtention command interface\n\r");
-  /* USER CODE END 1 */
 
   /* Configure the Lora Stack*/
-  LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
+  /*LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
 
-  //Derectly at the intitialisation join LoRa
+  Derectly at the intitialisation join LoRa
   PRINTF("LORA_JOIN()... wait 10s \n\r");
-  LORA_Join(); //this function take ~10s, how can i wait till finished
+  LORA_Join(); //this function take ~10s,
+  HAL_Delay(12000);
+  PRINTF("end delay initialization \n\r");
 
   LoraStartTx(TX_ON_TIMER) ;
+  */
   /* main loop*/
   while (1)
   {
+	  toto++;
+	  //do it juste one time
+	  while(rxBuf[4]==0){
+		  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
+		  PRINTF("%s",&rxBuf);
+	  }
 
 	  if (AppProcessRequest == LORA_SET)
 	  {
@@ -184,10 +220,6 @@ int main(void)
 		sendMsg(NULL);
 	  }
 
-
-
-
-
     /* Handle UART commands */
     CMD_Process();
 
@@ -197,25 +229,7 @@ int main(void)
       LoraMacProcessRequest = LORA_RESET;
       LoRaMacProcess();
     }
-    /*
-     * low power section
-     */
-    DISABLE_IRQ();
-    /*
-     * if an interrupt has occurred after DISABLE_IRQ, it is kept pending
-     * and cortex will not enter low power anyway
-     * don't go in low power mode if we just received a char
-     */
-    if (LoraMacProcessRequest != LORA_SET)
-    {
-#ifndef LOW_POWER_DISABLE
-      LPM_EnterLowPower();
-#endif
-    }
-    ENABLE_IRQ();
 
-    /* USER CODE BEGIN 2 */
-    /* USER CODE END 2 */
   }
 }
 
@@ -247,10 +261,6 @@ static void LORA_ConfirmClass(DeviceClass_t Class)
   PRINTF("switch to class %c done\n\r", "ABC"[Class]);
 }
 
-//static void LORA_TxNeeded(void)
-//{
-//  PRINTF("Network Server is asking for an uplink transmission\n\r");
-//}
 
 /**
   * @brief This function return the battery level
@@ -357,3 +367,23 @@ static void LORA_TxNeeded(void)
 /************************ End LoRa Part****/
 
 /************************ Uart 1 Part : ultrasound sensor****/
+static void MX_USART1_UART_Init(void)
+{
+
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_RXINVERT_INIT;
+  huart1.AdvancedInit.RxPinLevelInvert = UART_ADVFEATURE_RXINV_ENABLE;
+  if (HAL_UART_Init(&huart1) != HAL_OK) // breakpoint here! there is a probleme. this is not 2 times the same function!!
+  {
+    Error_Handler();
+  }
+}
+
