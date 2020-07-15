@@ -160,25 +160,9 @@ int main(void)
 	 /*pims*/
 
 
-  /* Configure Debug mode */
-//  DBG_Init();
 
-
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
-  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-	Error_Handler();
-  }
-  //USARTx_TX_GPIO_CLK_ENABLE();
-  //USARTx_RX_GPIO_CLK_ENABLE();
 
   MX_USART1_UART_Init();
-
-
-
-  PRINTF("end MX_USART1_UART_Init \n\r");
 
 
   CMD_Init();
@@ -190,28 +174,34 @@ int main(void)
   /* Configure the Lora Stack*/
   /*LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
 
-  Derectly at the intitialisation join LoRa
+
   PRINTF("LORA_JOIN()... wait 10s \n\r");
   LORA_Join(); //this function take ~10s,
   HAL_Delay(12000);
   PRINTF("end delay initialization \n\r");
 
   LoraStartTx(TX_ON_TIMER) ;
-  */
+*/
   /* main loop*/
   while (1)
   {
 	  toto++;
 	  //do it juste one time
 	  while(rxBuf[4]==0){
-		  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
-		  PRINTF("%s",&rxBuf);
+	  	  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
+	  	  PRINTF("%s",&rxBuf);
+
 	  }
 
 	  if (AppProcessRequest == LORA_SET)
 	  {
 		/*get uart msg (ultrasonic sensor)*/
 
+		  //while(rxBuf[4]==0){
+		 //		  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
+		 //		  PRINTF("%s",&rxBuf);
+
+		 //	   }
 		/*get i2c msg (pressure sensor)*/
 
 		/*reset notification flag*/
