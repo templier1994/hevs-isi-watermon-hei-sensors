@@ -98,12 +98,30 @@ LoraFlagStatus LoraMacProcessRequest = LORA_RESET;
 /**
  * Initialises the Lora Parameters
  */
-static LoRaParam_t LoRaParamInit = {LORAWAN_ADR_ON,
-                                    DR_0,
-                                    LORAWAN_PUBLIC_NETWORK
-                                   };
 
+#define LORAWAN_APP_PORT	 								1
+#define LORAWAN_APP_DATA_BUFF_SIZE                          64
+#define LORAWAN_DEFAULT_CONFIRM_MSG_STATE           		LORAWAN_UNCONFIRMED_MSG
+#define LORAWAN_DEFAULT_CLASS                       		CLASS_A
+#define LORAWAN_DEFAULT_DATA_RATE 							DR_0
+#define LORAWAN_ADR_STATE 									LORAWAN_ADR_ON
+#define APP_TX_DUTYCYCLE                            		120000 //2m
 
+static LoRaParam_t LoRaParamInit = {LORAWAN_ADR_STATE, LORAWAN_DEFAULT_DATA_RATE, LORAWAN_PUBLIC_NETWORK };
+
+static uint8_t AppDataBuff[LORAWAN_APP_DATA_BUFF_SIZE];
+lora_AppData_t AppData = { AppDataBuff,  0, 0 };
+static void sendMsg(void *context);
+
+/*Timer*/
+static TimerEvent_t TxTimer;
+/* tx timer callback function*/
+static void OnTxTimerEvent(void *context);
+/* call back when server needs endNode to send a frame*/
+static void LORA_TxNeeded(void);
+/* start the tx process*/
+static void LoraStartTx(TxEventType_t EventType);
+LoraFlagStatus AppProcessRequest = LORA_RESET;
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -123,6 +141,18 @@ int main(void)
   /* Configure the hardware*/
   HW_Init();
 
+
+  /*pims, enable ultrasound sensor */
+	/* enable the relay */
+	 GPIO_InitTypeDef x;
+	 x.Pin   = GPIO_PIN_11;
+	 x.Mode  = GPIO_MODE_OUTPUT_PP;
+
+	 HAL_GPIO_Init(GPIOA, &x);
+	 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
+	 /*pims*/
+
+
   /* Configure Debug mode */
   DBG_Init();
 
@@ -136,6 +166,10 @@ int main(void)
 
   /* Configure the Lora Stack*/
   LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
+
+  //Derectly at the intitialisation join LoRa
+  PRINTF("LORA_JOIN()... wait 10s \n\r");
+  LORA_Join(); //this function take ~10s, how can i wait till finished
 
   /* main loop*/
   while (1)
