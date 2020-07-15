@@ -1,4 +1,3 @@
-
 /*
  / _____)             _              | |
 ( (____  _____ ____ _| |_ _____  ____| |__
@@ -6,11 +5,8 @@
  _____) ) ____| | | || |_| ____( (___| | | |
 (______/|_____)_|_|_| \__)_____)\____)_| |_|
     (C)2013 Semtech
-
 Description: Generic lora driver implementation
-
 License: Revised BSD License, see LICENSE.TXT file include in the project
-
 Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 */
 /**
@@ -40,7 +36,7 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include "command.h"
 #include "at.h"
 #include "lora.h"
-
+#include "stdio.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
@@ -292,6 +288,8 @@ static void LORA_McpsDataConfirm(void)
 }
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
+/************************ LoRa Part****/
 /**
  * Send a message to TTN
  */
@@ -355,3 +353,7 @@ static void LORA_TxNeeded(void)
 
   LORA_send(&AppData, LORAWAN_UNCONFIRMED_MSG);
 }
+
+/************************ End LoRa Part****/
+
+/************************ Uart 1 Part : ultrasound sensor****/
