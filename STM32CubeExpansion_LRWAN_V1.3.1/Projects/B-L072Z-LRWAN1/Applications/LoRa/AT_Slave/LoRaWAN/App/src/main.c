@@ -108,7 +108,7 @@ static LoRaParam_t LoRaParamInit = {LORAWAN_ADR_STATE, LORAWAN_DEFAULT_DATA_RATE
 
 static uint8_t AppDataBuff[LORAWAN_APP_DATA_BUFF_SIZE];
 lora_AppData_t AppData = { AppDataBuff,  0, 0 };
-static void sendMsg(void *context);
+static void sendMsg(void *context, uint8_t BufToSend[]);
 
 /*Timer*/
 static TimerEvent_t TxTimer;
@@ -129,7 +129,7 @@ UART_HandleTypeDef huart1;
 
 static void MX_USART1_UART_Init(void);
 
-#define rxBuf_size 		5 	//5
+#define rxBuf_size 		102 	//5
 uint8_t rxBuf[rxBuf_size];
 HAL_StatusTypeDef UART1status;
 
@@ -149,7 +149,6 @@ int main(void)
   /* Configure the hardware*/
   HW_Init();
 
-
   /*pims, enable ultrasound sensor */
 	/* enable the relay */
 	 GPIO_InitTypeDef x;
@@ -159,12 +158,6 @@ int main(void)
 	 HAL_GPIO_Init(GPIOA, &x);
 	 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 	 /*pims*/
-
-
-
-
-
-
 
   CMD_Init();
   /*Disable standby mode*/
@@ -181,7 +174,7 @@ int main(void)
   LoraStartTx(TX_ON_TIMER) ;
 
 
-  //MX_USART1_UART_Init();
+  MX_USART1_UART_Init();
 
 
 
@@ -189,30 +182,31 @@ int main(void)
   while (1)
   {
 
-	  //do it juste one time
-	 // while(rxBuf[4]==0){
-	 // 	  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
-	 // 	  PRINTF("%s",&rxBuf);
-	 // }
-
 	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
 	  {
 		PRINTF("LoRa routine \n\r");
-		/*get uart msg (ultrasonic sensor)*/
-		//HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
 
-		// while(rxBuf[4]==0){
-		//   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
-		//   PRINTF("%s",&rxBuf);
-		// }
-		//HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
+		/*get uart msg (ultrasonic sensor)*/
+
+		 HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
+		 while(rxBuf[4]==0){//
+		   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
+		 }
+		   PRINTF("%s",&rxBuf);
+
+		 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 
 		/*get i2c msg (pressure sensor)*/
 
 		/*reset notification flag*/
 		AppProcessRequest = LORA_RESET;
 		/*SendMsg*/
-		sendMsg(NULL);
+		sendMsg(NULL, rxBuf);
+		//memset(rxBuf, 0 , sizeof(rxBuf));
+		for(uint8_t i = 0; i< rxBuf_size; i++){
+			rxBuf[i]=0;
+		}
+
 
 	}
     /* Handle UART commands */
@@ -298,20 +292,48 @@ static void LORA_McpsDataConfirm(void)
 /**
  * Send a message to TTN
  */
-static void sendMsg(void *context){
-	PRINTF("Main.c : sendMsg() \n\r");
+static void sendMsg(void *context, uint8_t bufToSend[]){
+
 
 	/*Variables to send*/
-	int16_t snowHeight = 12;
-	uint8_t batteryLevel;
+	//int16_t snowHeight1 = bufToSend[97];
+	//int16_t snowHeight2 = bufToSend[98];
+	//int16_t snowHeight3 = bufToSend[99];
 
-	 if (LORA_JoinStatus() != LORA_SET)
-	  {
-	    /*Not joined, try again later*/
-		// PRINTF("re-join\n\r");
-	    LORA_Join();
-	    return;
-	  }
+	int16_t snowHeight1=0;
+	int16_t snowHeight2=0;
+	int16_t snowHeight3=0;
+
+
+
+	for(uint8_t i = 79; i<rxBuf_size-3; i++){ // 79 is the end of the header
+		if(bufToSend[i] == 'R' && bufToSend[i+2] != '0'){ // what happen if R100 ? else watch the first R000 and then use i+10 for the first value
+			snowHeight1 = bufToSend[i+1];
+			snowHeight2 = bufToSend[i+2];
+			snowHeight3 = bufToSend[i+3];
+			PRINTF("find\n\r");
+			break;
+		}
+	}
+	/*for(uint8_t i = 79; i<rxBuf_size-13; i++){ // 79 is the end of the header
+			if(bufToSend[i] == 'R' && bufToSend[i+1] == '0'&& bufToSend[i+2] == '0' && bufToSend[i+3] == '0'){ // what happen if R100 ? else watch the first R000 and then use i+10 for the first value
+				snowHeight1 = bufToSend[i+11];
+				snowHeight2 = bufToSend[i+12];
+				snowHeight3 = bufToSend[i+13];
+				PRINTF("find\n\r");
+				break;
+			}
+		}*/
+
+
+	PRINTF("%s",&snowHeight1);
+	PRINTF("%s",&snowHeight2);
+	PRINTF("%s \n\r",&snowHeight3);
+
+
+	uint8_t batteryLevel ;
+
+
 
 	batteryLevel = LORA_GetBatteryLevel();
 
@@ -319,11 +341,16 @@ static void sendMsg(void *context){
 	uint32_t i = 0;
 
 	AppData.Buff[i++] = batteryLevel;
-	AppData.Buff[i++] = snowHeight;
+	AppData.Buff[i++] = snowHeight1;
+	AppData.Buff[i++] = snowHeight2;
+	AppData.Buff[i++] = snowHeight3;
+
 
 	AppData.BuffSize = i;
 
 	LORA_send(&AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+	PRINTF("Main.c : sendMsg() \n\r");
+
 
 }
 
