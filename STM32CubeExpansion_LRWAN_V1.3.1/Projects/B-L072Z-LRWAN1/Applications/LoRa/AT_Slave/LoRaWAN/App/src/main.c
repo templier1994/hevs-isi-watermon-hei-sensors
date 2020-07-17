@@ -120,6 +120,8 @@ static void LORA_TxNeeded(void);
 static void LoraStartTx(TxEventType_t EventType);
 LoraFlagStatus AppProcessRequest = LORA_RESET;
 
+
+
 /* Private functions ---------------------------------------------------------*/
 
 /* UART ultrasound sensors*/
@@ -130,7 +132,6 @@ static void MX_USART1_UART_Init(void);
 #define rxBuf_size 		5 	//5
 uint8_t rxBuf[rxBuf_size];
 HAL_StatusTypeDef UART1status;
-uint8_t toto = 0;
 
 /**
  * @brief  Main program
@@ -156,13 +157,13 @@ int main(void)
 	 x.Mode  = GPIO_MODE_OUTPUT_PP;
 
 	 HAL_GPIO_Init(GPIOA, &x);
-	 HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
+	 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 	 /*pims*/
 
 
 
 
-  MX_USART1_UART_Init();
+
 
 
   CMD_Init();
@@ -172,44 +173,48 @@ int main(void)
   PPRINTF("ATtention command interface\n\r");
 
   /* Configure the Lora Stack*/
-  /*LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
+  LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
 
 
   PRINTF("LORA_JOIN()... wait 10s \n\r");
   LORA_Join(); //this function take ~10s,
-  HAL_Delay(12000);
-  PRINTF("end delay initialization \n\r");
-
   LoraStartTx(TX_ON_TIMER) ;
-*/
+
+
+  //MX_USART1_UART_Init();
+
+
+
   /* main loop*/
   while (1)
   {
-	  toto++;
+
 	  //do it juste one time
-	  while(rxBuf[4]==0){
-	  	  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
-	  	  PRINTF("%s",&rxBuf);
+	 // while(rxBuf[4]==0){
+	 // 	  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
+	 // 	  PRINTF("%s",&rxBuf);
+	 // }
 
-	  }
-
-	  if (AppProcessRequest == LORA_SET)
+	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
 	  {
+		PRINTF("LoRa routine \n\r");
 		/*get uart msg (ultrasonic sensor)*/
+		//HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
 
-		  //while(rxBuf[4]==0){
-		 //		  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
-		 //		  PRINTF("%s",&rxBuf);
+		// while(rxBuf[4]==0){
+		//   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
+		//   PRINTF("%s",&rxBuf);
+		// }
+		//HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 
-		 //	   }
 		/*get i2c msg (pressure sensor)*/
 
 		/*reset notification flag*/
 		AppProcessRequest = LORA_RESET;
 		/*SendMsg*/
 		sendMsg(NULL);
-	  }
 
+	}
     /* Handle UART commands */
     CMD_Process();
 
