@@ -102,7 +102,7 @@ LoraFlagStatus LoraMacProcessRequest = LORA_RESET;
 #define LORAWAN_DEFAULT_CLASS                       		CLASS_A
 #define LORAWAN_DEFAULT_DATA_RATE 							DR_0
 #define LORAWAN_ADR_STATE 									LORAWAN_ADR_ON
-#define APP_TX_DUTYCYCLE                            		120000 //2m
+#define APP_TX_DUTYCYCLE                            		240000 //2m
 
 static LoRaParam_t LoRaParamInit = {LORAWAN_ADR_STATE, LORAWAN_DEFAULT_DATA_RATE, LORAWAN_PUBLIC_NETWORK };
 
@@ -294,41 +294,27 @@ static void LORA_McpsDataConfirm(void)
  */
 static void sendMsg(void *context, uint8_t bufToSend[]){
 
-
-	/*Variables to send*/
-	//int16_t snowHeight1 = bufToSend[97];
-	//int16_t snowHeight2 = bufToSend[98];
-	//int16_t snowHeight3 = bufToSend[99];
-
 	int16_t snowHeight1=0;
 	int16_t snowHeight2=0;
 	int16_t snowHeight3=0;
+	int8_t ultrasound = 0;
 
-
-
-	for(uint8_t i = 79; i<rxBuf_size-3; i++){ // 79 is the end of the header
-		if(bufToSend[i] == 'R' && bufToSend[i+2] != '0'){ // what happen if R100 ? else watch the first R000 and then use i+10 for the first value
-			snowHeight1 = bufToSend[i+1];
-			snowHeight2 = bufToSend[i+2];
-			snowHeight3 = bufToSend[i+3];
-			PRINTF("find\n\r");
-			break;
-		}
-	}
-	/*for(uint8_t i = 79; i<rxBuf_size-13; i++){ // 79 is the end of the header
-			if(bufToSend[i] == 'R' && bufToSend[i+1] == '0'&& bufToSend[i+2] == '0' && bufToSend[i+3] == '0'){ // what happen if R100 ? else watch the first R000 and then use i+10 for the first value
+	for(uint8_t i = 50; i<rxBuf_size-13; i++){ // 50 is ~ the end of the header
+			if(bufToSend[i] == 'R' && bufToSend[i+1] == '0'&& bufToSend[i+2] == '0' && bufToSend[i+3] == '0'){
 				snowHeight1 = bufToSend[i+11];
 				snowHeight2 = bufToSend[i+12];
 				snowHeight3 = bufToSend[i+13];
-				PRINTF("find\n\r");
+				ultrasound= bufToSend[i+11] * 100 + bufToSend[i+12] * 10 + bufToSend[i+13];
+
 				break;
 			}
-		}*/
+		}
 
 
 	PRINTF("%s",&snowHeight1);
 	PRINTF("%s",&snowHeight2);
 	PRINTF("%s \n\r",&snowHeight3);
+	//PRINTF(ultrasound);
 
 
 	uint8_t batteryLevel ;
@@ -344,7 +330,7 @@ static void sendMsg(void *context, uint8_t bufToSend[]){
 	AppData.Buff[i++] = snowHeight1;
 	AppData.Buff[i++] = snowHeight2;
 	AppData.Buff[i++] = snowHeight3;
-
+	AppData.Buff[i++] = ultrasound;
 
 	AppData.BuffSize = i;
 
