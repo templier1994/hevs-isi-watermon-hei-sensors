@@ -464,7 +464,7 @@ typedef enum eLoRaMacMoteCmd
     /*!
      * DeviceTimeReq
      */
-    MOTE_MAC_DEVICE_TIME_REQ         = 0x0D,
+    MOTE_MAC_DEVICE_TIME_REQ         = 0xFF, //0D
     /*!
      * PingSlotInfoReq
      */

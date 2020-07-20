@@ -299,6 +299,7 @@ static void sendMsg(void *context, uint8_t bufToSend[]){
 		return;
 	}
 
+	/*Ultrasound part*/
 	int8_t ultrasound = 0;
 
 	for(uint8_t i = 50; i<rxBuf_size-13; i++){ // 50 is ~ the end of the header
@@ -314,13 +315,14 @@ static void sendMsg(void *context, uint8_t bufToSend[]){
 				valHundred = atoi(hundred);
 				valDozen = atoi(dozen);
 				valUnit = atoi(unit);
-
 				ultrasound= valHundred*100 + valDozen * 10 + valUnit;
-
 				break;
 			}
 		}
+	/*End UltraSound*/
+	/*Pressure Part*/
 
+	/*End pressure part*/
 
 	uint8_t batteryLevel ;
 
