@@ -294,32 +294,48 @@ static void LORA_McpsDataConfirm(void)
  */
 static void sendMsg(void *context, uint8_t bufToSend[]){
 
-	int16_t snowHeight1=0;
-	int16_t snowHeight2=0;
-	int16_t snowHeight3=0;
+	//if not joined, rejoind the network
+	if(LORA_JoinStatus() != LORA_SET){
+		LORA_Join();
+		return;
+	}
+	//int8_t snowHeight1=0;
+	//int8_t snowHeight2=0;
+	//int8_t snowHeight3=0;
 	int8_t ultrasound = 0;
 
 	for(uint8_t i = 50; i<rxBuf_size-13; i++){ // 50 is ~ the end of the header
 			if(bufToSend[i] == 'R' && bufToSend[i+1] == '0'&& bufToSend[i+2] == '0' && bufToSend[i+3] == '0'){
-				snowHeight1 = bufToSend[i+11];
-				snowHeight2 = bufToSend[i+12];
-				snowHeight3 = bufToSend[i+13];
-				ultrasound= bufToSend[i+11] * 100 + bufToSend[i+12] * 10 + bufToSend[i+13];
+		//		snowHeight1 = bufToSend[i+11];
+		//		snowHeight2 = bufToSend[i+12];
+		//		snowHeight3 = bufToSend[i+13];
+
+				char hundred[2]={bufToSend[i+11],0};
+				char dozen[2]={bufToSend[i+12],0};
+				char unit[2]={bufToSend[i+13],0};
+
+				int valHundred;
+				int valDozen;
+				int valUnit;
+
+				valHundred = atoi(hundred);
+				valDozen = atoi(dozen);
+				valUnit = atoi(unit);
+
+				ultrasound= valHundred*100 + valDozen * 10 + valUnit;
 
 				break;
 			}
 		}
 
 
-	PRINTF("%s",&snowHeight1);
-	PRINTF("%s",&snowHeight2);
-	PRINTF("%s \n\r",&snowHeight3);
-	//PRINTF(ultrasound);
+	//PRINTF("%s",&snowHeight1);
+	//PRINTF("%s",&snowHeight2);
+	//PRINTF("%s \n\r",&snowHeight3);
+	PRINTF("%s \n\r",&ultrasound);
 
 
 	uint8_t batteryLevel ;
-
-
 
 	batteryLevel = LORA_GetBatteryLevel();
 
@@ -327,9 +343,9 @@ static void sendMsg(void *context, uint8_t bufToSend[]){
 	uint32_t i = 0;
 
 	AppData.Buff[i++] = batteryLevel;
-	AppData.Buff[i++] = snowHeight1;
-	AppData.Buff[i++] = snowHeight2;
-	AppData.Buff[i++] = snowHeight3;
+	//AppData.Buff[i++] = snowHeight1;
+	//AppData.Buff[i++] = snowHeight2;
+	//AppData.Buff[i++] = snowHeight3;
 	AppData.Buff[i++] = ultrasound;
 
 	AppData.BuffSize = i;
@@ -389,7 +405,7 @@ static void MX_USART1_UART_Init(void)
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_RXINVERT_INIT;
   huart1.AdvancedInit.RxPinLevelInvert = UART_ADVFEATURE_RXINV_ENABLE;
-  if (HAL_UART_Init(&huart1) != HAL_OK) // breakpoint here! there is a probleme. this is not 2 times the same function!!
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
