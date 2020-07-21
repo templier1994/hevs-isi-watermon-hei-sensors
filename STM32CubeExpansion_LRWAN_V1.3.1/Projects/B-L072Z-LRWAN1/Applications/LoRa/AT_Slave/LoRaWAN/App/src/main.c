@@ -96,7 +96,7 @@ LoraFlagStatus LoraMacProcessRequest = LORA_RESET;
  * Initialises the Lora Parameters
  */
 
-#define LORAWAN_APP_PORT	 								1
+#define LORAWAN_APP_PORT	 								2
 #define LORAWAN_APP_DATA_BUFF_SIZE                          64
 #define LORAWAN_DEFAULT_CONFIRM_MSG_STATE           		LORAWAN_UNCONFIRMED_MSG
 #define LORAWAN_DEFAULT_CLASS                       		CLASS_A
@@ -160,7 +160,8 @@ int main(void)
 	 /*pims*/
 
   CMD_Init();
-  /*Disable standby mode*/
+
+	 /*Disable standby mode*/
 //  LPM_SetOffMode(LPM_APPLI_Id, LPM_Disable);
 
   PPRINTF("ATtention command interface\n\r");
@@ -192,7 +193,6 @@ int main(void)
 		   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
 		 }
 		   PRINTF("%s",&rxBuf);
-
 		 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 
 		/*get i2c msg (pressure sensor)*/
@@ -210,7 +210,6 @@ int main(void)
 	}
     /* Handle UART commands */
     CMD_Process();
-
     if (LoraMacProcessRequest == LORA_SET)
     {
       /*reset notification flag*/
@@ -393,5 +392,28 @@ static void MX_USART1_UART_Init(void)
   {
     Error_Handler();
   }
+}
+
+static void enterStopMode(){
+	/* Enable Clocks */
+	  RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+	  RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
+
+	  /* Configure PA0 as External Interrupt */
+	  GPIOA->MODER &= ~( GPIO_MODER_MODE0 ); // PA0 is in Input mode
+	  EXTI->IMR |= EXTI_IMR_IM0; // interrupt request from line 0 not masked
+	  EXTI->RTSR |= EXTI_RTSR_TR0; // rising trigger enabled for input line 0
+
+	  // Enable interrupt in the NVIC
+	  //NVIC_EnableIRQ( EXTI0_1_IRQn );
+	  //NVIC_SetPriority( EXTI0_1_IRQn, BTN_INT_PRIO );
+
+
+	  /* Prepare to enter stop mode */
+	  PWR->CR |= PWR_CR_CWUF; // clear the WUF flag after 2 clock cycles
+	  PWR->CR &= ~( PWR_CR_PDDS ); // Enter stop mode when the CPU enters deepsleep
+	  RCC->CFGR |= RCC_CFGR_STOPWUCK; // HSI16 oscillator is wake-up from stop clock
+	  SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; // low-power mode = stop mode
+	  __WFI(); // enter low-power mode
 }
 
