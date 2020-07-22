@@ -140,16 +140,6 @@ int main(void)
   while (1)
   {
 
-	  //test send on uart 1
-	  /*  HAL_Delay(2000);
-		  printf("test transmit \n\r");
-		  HAL_UART_Transmit(&huart1, "Hello\n", 6, 0xFFFF);
-	   */
-
-	  //test receive on uart1
-	  toto++;
-	  //display toto ASCII
-	  //HAL_UART_Transmit(&hlpuart1, &toto, 1, HAL_MAX_DELAY);
 
 	//while(HAL_UART_GetState(&huart1) != HAL_OK || HAL_UART_GetState(&huart1) != HAL_TIMEOUT){
 	  	  UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
@@ -159,14 +149,6 @@ int main(void)
 	  	  }
 	//}
 
-	  //echo on console
-	  /*
-	  uint8_t echo;
-	  //Blocks indefinitely until 1 byte is received
-	  HAL_UART_Receive(&hlpuart1, &echo, 1, HAL_MAX_DELAY);
-	  //Sends back the byte
-	  HAL_UART_Transmit(&hlpuart1, &echo, 1, HAL_MAX_DELAY);
-	  */
 
     /* USER CODE END WHILE */
 
@@ -372,6 +354,8 @@ static void MX_RTC_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN RTC_Init 2 */
+
+
 
   /* USER CODE END RTC_Init 2 */
 

@@ -133,6 +133,10 @@ static void MX_USART1_UART_Init(void);
 uint8_t rxBuf[rxBuf_size];
 HAL_StatusTypeDef UART1status;
 
+static void enter_StopMode(void);
+static void enter_StandBy(void);
+
+
 /**
  * @brief  Main program
  * @param  None
@@ -189,6 +193,8 @@ int main(void)
 		/*get uart msg (ultrasonic sensor)*/
 
 		 HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
+
+
 		 while(rxBuf[4]==0){//
 		   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
 		 }
@@ -355,6 +361,7 @@ static void LoraStartTx(TxEventType_t EventType)
   if (EventType == TX_ON_TIMER)
   {
     /* send everytime timer elapses */
+
     TimerInit(&TxTimer, OnTxTimerEvent);
     TimerSetValue(&TxTimer,  APP_TX_DUTYCYCLE);
     OnTxTimerEvent(NULL);
@@ -394,7 +401,7 @@ static void MX_USART1_UART_Init(void)
   }
 }
 
-static void enterStopMode(){
+static void enter_StopMode(void){
 	/* Enable Clocks */
 	  RCC->APB1ENR |= RCC_APB1ENR_PWREN;
 	  RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
@@ -409,11 +416,31 @@ static void enterStopMode(){
 	  //NVIC_SetPriority( EXTI0_1_IRQn, BTN_INT_PRIO );
 
 
+
 	  /* Prepare to enter stop mode */
 	  PWR->CR |= PWR_CR_CWUF; // clear the WUF flag after 2 clock cycles
 	  PWR->CR &= ~( PWR_CR_PDDS ); // Enter stop mode when the CPU enters deepsleep
 	  RCC->CFGR |= RCC_CFGR_STOPWUCK; // HSI16 oscillator is wake-up from stop clock
 	  SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; // low-power mode = stop mode
 	  __WFI(); // enter low-power mode
+}
+
+static void enter_StandBy(void){
+	/*Enable clock*/
+	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+
+	/*prepare for standby*/
+	PWR->CSR |= PWR_CSR_EWUP1 | PWR_CSR_EWUP2;
+
+	PWR->CR |= PWR_CR_CWUF;
+	PWR->CR |= PWR_CR_ULP;
+	PWR->CR |= PWR_CR_PDDS;
+
+	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+	SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
+
+	__WFI();
+
+
 }
 
