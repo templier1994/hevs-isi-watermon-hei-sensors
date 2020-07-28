@@ -39,7 +39,7 @@
 #define LORA_VDD_TCXO       GPIO_PIN_12 // PA12
 #define BUTTON_PIN          GPIO_PIN_0  // PA0
 #define GREEN_LED_PIN       GPIO_PIN_7  // PB7
-#define PULSE_COUNTER_PIN   GPIO_PIN_6  // PB6 FIXME: Pulse counter should be on PB5 (LPTIM1 IN1): swap with SONAR_CMD
+#define PULSE_COUNTER_PIN   GPIO_PIN_5  // PB6 FIXME: Pulse counter should be on PB5 (LPTIM1 IN1): swap with SONAR_CMD
 #define BAT_MES_NOW_PIN     GPIO_PIN_2  // PB2
 #define VBAT_DIV3_PIN       GPIO_PIN_4  // PA4
 /* USER CODE END PD */
@@ -123,6 +123,17 @@ int main(void)
   snprintf((char*)uartBuf, UART_BUF_SIZE, "Code started..\n\r");
   HAL_UART_Transmit(&hlpuart1, uartBuf, strlen((char*)uartBuf), HAL_MAX_DELAY);
 
+  /**Set a pin to 1 at begining, the 0 when stop, the 1 when wake up**/
+	 GPIO_InitTypeDef x;
+	 x.Pin   = PULSE_COUNTER_PIN;
+	 x.Mode  = GPIO_MODE_OUTPUT_PP;
+
+	 HAL_GPIO_Init(GPIOB, &x);
+	 HAL_GPIO_WritePin(GPIOB, x.Pin, 1);
+
+
+
+
   /**
    * TODO: Uncomment these functions to test the functionalities
    */
@@ -133,7 +144,7 @@ int main(void)
   //test_pulse_lp_timer();
   //test_battery_measure();
   test_stop_mode();
-  //test_standby_mode();
+ // test_standby_mode();
 
 
   /* USER CODE END 2 */
@@ -142,6 +153,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  HAL_GPIO_WritePin(GPIOB, x.Pin, 0);
     // Print out buffer (data or error message)
     snprintf((char*)uartBuf, UART_BUF_SIZE, "Hello world\n\r");
     HAL_UART_Transmit(&hlpuart1, uartBuf, strlen((char*)uartBuf), HAL_MAX_DELAY);
@@ -627,20 +639,20 @@ static void test_stop_mode()
   uint8_t buf[32];
   uint32_t ticks = 0;
 
-  while(1) {
+  //while(1) {
     // start counting pulses
     //HAL_LPTIM_Counter_Start_IT(&hlptim1, 30);
 
     // run for a while
-    for(int i = 0; i < 200; i++) {
+   // for(int i = 0; i < 50; i++) {
       //ticks = HAL_LPTIM_ReadCounter(&hlptim1);
-      snprintf((char*)buf, 32, "Normal mode, i=%u, pulse=%lu\n\r", i, ticks);
-      HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
-    }
+   //   snprintf((char*)buf, 32, "Normal mode, i=%u, pulse=%lu\n\r", i, ticks);
+   //   HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+   // }
 
     // set RTC wakeup
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
-    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 10, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
+    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 30, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
 
     snprintf((char*)buf, 32, "Go to stop mode...\n\r");
     HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
@@ -651,9 +663,9 @@ static void test_stop_mode()
 
     // ticks after wake up
     //ticks = HAL_LPTIM_ReadCounter(&hlptim1);
-    snprintf((char*)buf, 32, "Waking up, pulse=%lu\n\r", ticks);
-    HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
-  }
+   // snprintf((char*)buf, 32, "Waking up, pulse=%lu\n\r", ticks);
+   // HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+  //}
 }
 
 /**

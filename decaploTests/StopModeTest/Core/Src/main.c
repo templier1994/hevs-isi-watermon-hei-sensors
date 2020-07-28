@@ -90,7 +90,7 @@ int main(void)
   MX_GPIO_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
-  //SystemPower_Config();
+  SystemPower_Config();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -103,8 +103,10 @@ int main(void)
     //Led pin off
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
 
+
+
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
-    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 10, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
+    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 30, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
 
     __HAL_RCC_PWR_CLK_ENABLE();
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
