@@ -133,13 +133,12 @@ static void MX_USART1_UART_Init(void);
 uint8_t rxBuf[rxBuf_size];
 HAL_StatusTypeDef UART1status;
 
-static void enter_StopMode(void);
-static void enter_StandBy(void);
 
 
 /*RTC------------------*/
 RTC_HandleTypeDef hrtc;
-
+static void MX_RTC_Init(void);
+static void test_stop_mode();
 /**
  * @brief  Main program
  * @param  None
@@ -155,27 +154,48 @@ int main(void)
 
   /* Configure the hardware*/
   HW_Init();
+  MX_RTC_Init();
+
+	 GPIO_InitTypeDef x;
+	 x.Pin   = GPIO_PIN_11 | GPIO_PIN_12;
+	 x.Mode  = GPIO_MODE_OUTPUT_PP;
+
+	 RCC_GPIO_CLK_ENABLE((uint32_t)GPIOA);
+	 HAL_GPIO_Init(GPIOA, &x);
+
+	 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
+
 
   /*pims, enable ultrasound sensor */
 	/* enable the relay */
-	 GPIO_InitTypeDef x;
-	 x.Pin   = GPIO_PIN_11;
-	 x.Mode  = GPIO_MODE_OUTPUT_PP;
 
-	 HAL_GPIO_Init(GPIOA, &x);
-	 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
+
 	 /*pims*/
+//	 GPIO_InitTypeDef y;
+//	 y.Pin   = GPIO_PIN_11;
+//	 y.Mode  = GPIO_MODE_OUTPUT_PP;
+
+//	 HAL_GPIO_Init(GPIOA, &x);
+//	 HAL_GPIO_WritePin(GPIOA, y.Pin, 0);
+	 /*pims*/
+
+
+
+
+
 
   CMD_Init();
 
   PPRINTF("ATtention command interface\n\r");
+
+
 
   /* Configure the Lora Stack*/
   LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
 
 
 //  PRINTF("LORA_JOIN()... wait 10s \n\r");
-  LORA_Join(); //this function take ~10s,
+//  LORA_Join(); //this function take ~10s,
 //  LoraStartTx(TX_ON_TIMER) ;
 
 //  MX_USART1_UART_Init();
@@ -183,6 +203,8 @@ int main(void)
   /* main loop*/
   while (1)
   {
+
+	  test_stop_mode();
 
 //	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
 //	  {
@@ -212,13 +234,13 @@ int main(void)
 
 //	}
     /* Handle UART commands */
-    CMD_Process();
-    if (LoraMacProcessRequest == LORA_SET)
-    {
+//    CMD_Process();
+//    if (LoraMacProcessRequest == LORA_SET)
+//    {
       /*reset notification flag*/
-      LoraMacProcessRequest = LORA_RESET;
-      LoRaMacProcess();
-    }
+//      LoraMacProcessRequest = LORA_RESET;
+//      LoRaMacProcess();
+//    }
 
 
   }
@@ -399,44 +421,87 @@ static void MX_USART1_UART_Init(void)
   }
 }
 
-static void enter_StopMode(void){
-	/* Enable Clocks */
-	  RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-	  RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
-
-	  /* Configure PA0 as External Interrupt */
-	  GPIOA->MODER &= ~( GPIO_MODER_MODE0 ); // PA0 is in Input mode
-	  EXTI->IMR |= EXTI_IMR_IM0; // interrupt request from line 0 not masked
-	  EXTI->RTSR |= EXTI_RTSR_TR0; // rising trigger enabled for input line 0
-
-	  // Enable interrupt in the NVIC
-	  //NVIC_EnableIRQ( EXTI0_1_IRQn );
-	  //NVIC_SetPriority( EXTI0_1_IRQn, BTN_INT_PRIO );
 
 
 
-	  /* Prepare to enter stop mode */
-	  PWR->CR |= PWR_CR_CWUF; // clear the WUF flag after 2 clock cycles
-	  PWR->CR &= ~( PWR_CR_PDDS ); // Enter stop mode when the CPU enters deepsleep
-	  RCC->CFGR |= RCC_CFGR_STOPWUCK; // HSI16 oscillator is wake-up from stop clock
-	  SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; // low-power mode = stop mode
-	  __WFI(); // enter low-power mode
+/**
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
+
+  /* USER CODE BEGIN RTC_Init 0 */
+
+  /* USER CODE END RTC_Init 0 */
+
+  /* USER CODE BEGIN RTC_Init 1 */
+
+  /* USER CODE END RTC_Init 1 */
+  /** Initialize RTC Only
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = 127;
+  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Enable the WakeUp
+  */
+  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
+
 }
 
-static void enter_StandBy(void){
-	/* Enable Clocks */
-	    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
 
-	    /* Prepare for Standby */
-	    // if WKUP pins are already high, the WUF bit will be set
-	    PWR->CSR |= PWR_CSR_EWUP1 | PWR_CSR_EWUP2;
 
-	    PWR->CR |= PWR_CR_CWUF; // clear the WUF flag after 2 clock cycles
-	    PWR->CR |= PWR_CR_ULP;   // V_{REFINT} is off in low-power mode
-	    PWR->CR |= PWR_CR_PDDS; // Enter Standby mode when the CPU enters deepsleep
 
-	    SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; // low-power mode = stop mode
-	    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk; // reenter low-power mode after ISR
-	    __WFI(); // enter low-power mode
+
+static void test_stop_mode()
+{
+  uint8_t buf[32];
+  uint32_t ticks = 0;
+  //PRINTF("enter stop");
+  //while(1) {
+    // start counting pulses
+    //HAL_LPTIM_Counter_Start_IT(&hlptim1, 30);
+
+    // run for a while
+   // for(int i = 0; i < 50; i++) {
+      //ticks = HAL_LPTIM_ReadCounter(&hlptim1);
+   //   snprintf((char*)buf, 32, "Normal mode, i=%u, pulse=%lu\n\r", i, ticks);
+   //   HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+   // }
+
+    // set RTC wakeup
+    HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 30, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
+
+    //snprintf((char*)buf, 32, "Go to stop mode...\n\r");
+    //HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+
+    // go to stop mode
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);  // clear wakeup flag
+    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI); // go in stop mode
+
+    // ticks after wake up
+    //ticks = HAL_LPTIM_ReadCounter(&hlptim1);
+   // snprintf((char*)buf, 32, "Waking up, pulse=%lu\n\r", ticks);
+   // HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+  //}
+  //  PRINTF("wake up");
 }
+
 

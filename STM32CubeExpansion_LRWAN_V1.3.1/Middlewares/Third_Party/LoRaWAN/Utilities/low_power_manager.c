@@ -88,12 +88,14 @@ void LPM_SetStopMode(LPM_Id_t id, LPM_SetMode_t mode)
 
 void LPM_EnterLowPower(void)
 {
+	StopModeDisable = 0;
+	OffModeDisable = 1;
   if( StopModeDisable )
   {
     /**
      * SLEEP mode is required
      */
-    LPM_EnterSleepMode();
+	LPM_EnterSleepMode();
     LPM_ExitSleepMode();
   }
   else
@@ -148,9 +150,9 @@ LPM_GetMode_t LPM_GetMode(void)
   return mode_selected;
 }
 
-__weak void LPM_EnterSleepMode(void) {}
+//__weak void LPM_EnterSleepMode(void) {}
 __weak void LPM_ExitSleepMode(void) {}
-__weak void LPM_EnterStopMode(void) {}
+//__weak void LPM_EnterStopMode(void) {}
 __weak void LPM_ExitStopMode(void) {}
 __weak void LPM_EnterOffMode(void) {}
 __weak void LPM_ExitOffMode(void) {}

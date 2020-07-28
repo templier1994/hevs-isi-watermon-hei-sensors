@@ -472,6 +472,7 @@ void LPM_EnterStopMode(void)
   /*clear wake up flag*/
   SET_BIT(PWR->CR, PWR_CR_CWUF);
 
+
   RESTORE_PRIMASK();
 
   /* Enter Stop Mode */
