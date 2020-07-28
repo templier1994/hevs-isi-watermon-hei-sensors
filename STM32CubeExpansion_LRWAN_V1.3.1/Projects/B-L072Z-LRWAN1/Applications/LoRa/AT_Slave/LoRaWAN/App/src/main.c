@@ -137,6 +137,9 @@ static void enter_StopMode(void);
 static void enter_StandBy(void);
 
 
+/*RTC------------------*/
+RTC_HandleTypeDef hrtc;
+
 /**
  * @brief  Main program
  * @param  None
@@ -165,55 +168,49 @@ int main(void)
 
   CMD_Init();
 
-	 /*Disable standby mode*/
-//  LPM_SetOffMode(LPM_APPLI_Id, LPM_Disable);
-
   PPRINTF("ATtention command interface\n\r");
 
   /* Configure the Lora Stack*/
   LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
 
 
-  PRINTF("LORA_JOIN()... wait 10s \n\r");
+//  PRINTF("LORA_JOIN()... wait 10s \n\r");
   LORA_Join(); //this function take ~10s,
-  LoraStartTx(TX_ON_TIMER) ;
+//  LoraStartTx(TX_ON_TIMER) ;
 
-  MX_USART1_UART_Init();
-
-
+//  MX_USART1_UART_Init();
 
   /* main loop*/
   while (1)
   {
 
-	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
-	  {
-		PRINTF("LoRa routine \n\r");
+//	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
+//	  {
+//		PRINTF("LoRa routine \n\r");
 
 		/*get uart msg (ultrasonic sensor)*/
 
-		 HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
+//		 HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
 
 
-		 while(rxBuf[4]==0){//
-		   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
-		 }
-		   PRINTF("%s",&rxBuf);
-		 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
+//		 while(rxBuf[4]==0){//
+//		   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
+//		 }
+//		   PRINTF("%s",&rxBuf);
+//		 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 
 		/*get i2c msg (pressure sensor)*/
 
 		/*reset notification flag*/
-		AppProcessRequest = LORA_RESET;
+//		AppProcessRequest = LORA_RESET;
 		/*SendMsg*/
-		sendMsg(NULL, rxBuf);
+//		sendMsg(NULL, rxBuf);
 		//memset(rxBuf, 0 , sizeof(rxBuf));
-		for(uint8_t i = 0; i< rxBuf_size; i++){
-			rxBuf[i]=0;
-		}
+//		for(uint8_t i = 0; i< rxBuf_size; i++){
+//			rxBuf[i]=0;
+//		}
 
-
-	}
+//	}
     /* Handle UART commands */
     CMD_Process();
     if (LoraMacProcessRequest == LORA_SET)
@@ -222,6 +219,7 @@ int main(void)
       LoraMacProcessRequest = LORA_RESET;
       LoRaMacProcess();
     }
+
 
   }
 }
@@ -426,21 +424,19 @@ static void enter_StopMode(void){
 }
 
 static void enter_StandBy(void){
-	/*Enable clock*/
-	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+	/* Enable Clocks */
+	    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
 
-	/*prepare for standby*/
-	PWR->CSR |= PWR_CSR_EWUP1 | PWR_CSR_EWUP2;
+	    /* Prepare for Standby */
+	    // if WKUP pins are already high, the WUF bit will be set
+	    PWR->CSR |= PWR_CSR_EWUP1 | PWR_CSR_EWUP2;
 
-	PWR->CR |= PWR_CR_CWUF;
-	PWR->CR |= PWR_CR_ULP;
-	PWR->CR |= PWR_CR_PDDS;
+	    PWR->CR |= PWR_CR_CWUF; // clear the WUF flag after 2 clock cycles
+	    PWR->CR |= PWR_CR_ULP;   // V_{REFINT} is off in low-power mode
+	    PWR->CR |= PWR_CR_PDDS; // Enter Standby mode when the CPU enters deepsleep
 
-	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-	SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
-
-	__WFI();
-
-
+	    SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; // low-power mode = stop mode
+	    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk; // reenter low-power mode after ISR
+	    __WFI(); // enter low-power mode
 }
 
