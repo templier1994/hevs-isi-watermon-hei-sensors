@@ -139,6 +139,9 @@ HAL_StatusTypeDef UART1status;
 RTC_HandleTypeDef hrtc;
 static void MX_RTC_Init(void);
 static void test_stop_mode();
+
+
+
 /**
  * @brief  Main program
  * @param  None
@@ -156,39 +159,19 @@ int main(void)
   HW_Init();
   MX_RTC_Init();
 
-	 GPIO_InitTypeDef x;
-	 x.Pin   = GPIO_PIN_11 | GPIO_PIN_12;
-	 x.Mode  = GPIO_MODE_OUTPUT_PP;
+  /*Pins enable : 11 relais, 12 radio*/
+ GPIO_InitTypeDef x;
+ x.Pin   = GPIO_PIN_11 | GPIO_PIN_12;
+ x.Mode  = GPIO_MODE_OUTPUT_PP;
 
-	 RCC_GPIO_CLK_ENABLE((uint32_t)GPIOA);
-	 HAL_GPIO_Init(GPIOA, &x);
+ RCC_GPIO_CLK_ENABLE((uint32_t)GPIOA);
+ HAL_GPIO_Init(GPIOA, &x);
 
-	 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
-
-
-  /*pims, enable ultrasound sensor */
-	/* enable the relay */
-
-
-	 /*pims*/
-//	 GPIO_InitTypeDef y;
-//	 y.Pin   = GPIO_PIN_11;
-//	 y.Mode  = GPIO_MODE_OUTPUT_PP;
-
-//	 HAL_GPIO_Init(GPIOA, &x);
-//	 HAL_GPIO_WritePin(GPIOA, y.Pin, 0);
-	 /*pims*/
-
-
-
-
-
+ HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 
   CMD_Init();
 
   PPRINTF("ATtention command interface\n\r");
-
-
 
   /* Configure the Lora Stack*/
   LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
@@ -203,6 +186,8 @@ int main(void)
   /* main loop*/
   while (1)
   {
+//	PRINTF("hello");
+//	  HAL_Delay(2000);
 
 	  test_stop_mode();
 
@@ -234,7 +219,7 @@ int main(void)
 
 //	}
     /* Handle UART commands */
-//    CMD_Process();
+      CMD_Process();
 //    if (LoraMacProcessRequest == LORA_SET)
 //    {
       /*reset notification flag*/
@@ -469,39 +454,23 @@ static void MX_RTC_Init(void)
 
 
 
+
+
+/**
+ *
+ */
 static void test_stop_mode()
 {
-  uint8_t buf[32];
-  uint32_t ticks = 0;
-  //PRINTF("enter stop");
-  //while(1) {
-    // start counting pulses
-    //HAL_LPTIM_Counter_Start_IT(&hlptim1, 30);
-
-    // run for a while
-   // for(int i = 0; i < 50; i++) {
-      //ticks = HAL_LPTIM_ReadCounter(&hlptim1);
-   //   snprintf((char*)buf, 32, "Normal mode, i=%u, pulse=%lu\n\r", i, ticks);
-   //   HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
-   // }
-
     // set RTC wakeup
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
     HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 30, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
-
-    //snprintf((char*)buf, 32, "Go to stop mode...\n\r");
-    //HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
     // go to stop mode
     __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);  // clear wakeup flag
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI); // go in stop mode
 
-    // ticks after wake up
-    //ticks = HAL_LPTIM_ReadCounter(&hlptim1);
-   // snprintf((char*)buf, 32, "Waking up, pulse=%lu\n\r", ticks);
-   // HAL_UART_Transmit(&hlpuart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
-  //}
-  //  PRINTF("wake up");
+    //after wake up
+
 }
 
 
