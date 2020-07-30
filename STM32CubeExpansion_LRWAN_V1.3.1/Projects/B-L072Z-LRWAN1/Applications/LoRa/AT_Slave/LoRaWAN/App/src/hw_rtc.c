@@ -362,20 +362,20 @@ void HW_RTC_IrqHandler(void)
 
 
   /* Clear the EXTI's line Flag for RTC Alarm */
-//  __HAL_RTC_ALARM_EXTI_CLEAR_FLAG();
+  __HAL_RTC_ALARM_EXTI_CLEAR_FLAG();
 
   /* Get the AlarmA interrupt source enable status */
-//  if (__HAL_RTC_ALARM_GET_IT_SOURCE(hrtc, RTC_IT_ALRA) != RESET)
-//  {
+  if (__HAL_RTC_ALARM_GET_IT_SOURCE(hrtc, RTC_IT_ALRA) != RESET)
+  {
     /* Get the pending status of the AlarmA Interrupt */
-//    if (__HAL_RTC_ALARM_GET_FLAG(hrtc, RTC_FLAG_ALRAF) != RESET)
-//    {
+    if (__HAL_RTC_ALARM_GET_FLAG(hrtc, RTC_FLAG_ALRAF) != RESET)
+    {
       /* Clear the AlarmA interrupt pending bit */
-//      __HAL_RTC_ALARM_CLEAR_FLAG(hrtc, RTC_FLAG_ALRAF);
+      __HAL_RTC_ALARM_CLEAR_FLAG(hrtc, RTC_FLAG_ALRAF);
       /* AlarmA callback */
-//      HAL_RTC_AlarmAEventCallback(hrtc);
-//    }
-//  }
+      HAL_RTC_AlarmAEventCallback(hrtc);
+    }
+  }
 }
 
 
