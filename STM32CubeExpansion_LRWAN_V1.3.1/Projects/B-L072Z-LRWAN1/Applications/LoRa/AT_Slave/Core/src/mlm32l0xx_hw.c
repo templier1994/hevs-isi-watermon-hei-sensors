@@ -241,8 +241,11 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /* Set Voltage scale1 as MCU will run at 32MHz */
+  /* Enable Power Control clock */
   __HAL_RCC_PWR_CLK_ENABLE();
+  /* The voltage scaling allows optimizing the power consumption when the device is
+       clocked below the maximum system frequency, to update the voltage scaling value
+       regarding system frequency refer to product datasheet.  */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /* Poll VOSF bit of in PWR_CSR. Wait until it is reset to 0 */

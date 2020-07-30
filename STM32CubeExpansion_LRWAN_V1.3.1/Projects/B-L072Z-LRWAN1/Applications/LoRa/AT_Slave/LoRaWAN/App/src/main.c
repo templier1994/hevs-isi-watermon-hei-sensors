@@ -136,10 +136,11 @@ HAL_StatusTypeDef UART1status;
 
 
 /*RTC------------------*/
+#define SLEEPTIME 				15
 RTC_HandleTypeDef hrtc;
 static void MX_RTC_Init(void);
 static void test_stop_mode();
-
+void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc);
 
 
 /**
@@ -176,7 +177,6 @@ int main(void)
   /* Configure the Lora Stack*/
   LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
 
-
 //  PRINTF("LORA_JOIN()... wait 10s \n\r");
 //  LORA_Join(); //this function take ~10s,
 //  LoraStartTx(TX_ON_TIMER) ;
@@ -186,11 +186,16 @@ int main(void)
   /* main loop*/
   while (1)
   {
-//	PRINTF("hello");
-//	  HAL_Delay(2000);
+	  PRINTF("wait 5s before sleep \n\r");
+
+	  HAL_Delay(5000);
+
+
+
 
 	  test_stop_mode();
 
+//-----------------------------------------------------------------------------
 //	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
 //	  {
 //		PRINTF("LoRa routine \n\r");
@@ -219,7 +224,7 @@ int main(void)
 
 //	}
     /* Handle UART commands */
-      CMD_Process();
+//      CMD_Process();
 //    if (LoraMacProcessRequest == LORA_SET)
 //    {
       /*reset notification flag*/
@@ -440,7 +445,7 @@ static void MX_RTC_Init(void)
   }
   /** Enable the WakeUp
   */
-  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK)
+  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, SLEEPTIME, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK)
   {
     Error_Handler();
   }
@@ -452,7 +457,16 @@ static void MX_RTC_Init(void)
 
 
 
-
+/**
+  * @brief  RTC Wake Up callback
+  * @param  None
+  * @retval None
+  */
+void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
+{
+  /* Clear Wake Up Flag */
+  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+}
 
 
 
@@ -461,16 +475,25 @@ static void MX_RTC_Init(void)
  */
 static void test_stop_mode()
 {
+	PRINTF("test_stop_mode() \n\r");
+	HAL_Delay(100);
+	//clear rtc event flag
+	__HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&hrtc, RTC_FLAG_WUTF);
+
     // set RTC wakeup
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
-    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 30, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
+    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, SLEEPTIME, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
 
     // go to stop mode
     __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);  // clear wakeup flag
+
+
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI); // go in stop mode
 
     //after wake up
+    SystemClock_Config();
 
+    PRINTF("wakeUp  \n\r");
 }
 
 
