@@ -160,7 +160,7 @@ int main(void)
 	 /* Configure the hardware*/
 	 HW_Init();
 
-	 MX_RTC_Init();		//THIS PART MAKE SHIT WITH LORA!!!!!!
+	 MX_RTC_Init();
 
 	 /*Pins enable : 11 relais, 12 radio*/
 	 GPIO_InitTypeDef x;
@@ -169,7 +169,6 @@ int main(void)
 
 	 RCC_GPIO_CLK_ENABLE((uint32_t)GPIOA);
 	 HAL_GPIO_Init(GPIOA, &x);
-
 	 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 
 	 CMD_Init();
@@ -180,8 +179,8 @@ int main(void)
 	 LORA_Init(&LoRaMainCallbacks, &LoRaParamInit);
 
 	 PRINTF("LORA_JOIN()... wait 10s \n\r");
-//	 LORA_Join(); //this function take ~10s,
-//	   LoraStartTx(TX_ON_TIMER) ;
+	 LORA_Join(); //this function need ~10s,
+//     LoraStartTx(TX_ON_TIMER) ;
 
 	 //  MX_USART1_UART_Init();
 
@@ -231,9 +230,9 @@ int main(void)
       /*
 	   * low power section
 	   */
-//      if(LORA_JoinStatus() == LORA_SET){
+      if(LORA_JoinStatus() == LORA_SET){
     	  test_stop_mode();
-//      }
+      }
 
   }
 }
