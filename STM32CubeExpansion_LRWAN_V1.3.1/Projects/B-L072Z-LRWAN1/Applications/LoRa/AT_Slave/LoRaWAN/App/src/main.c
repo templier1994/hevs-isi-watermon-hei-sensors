@@ -108,7 +108,7 @@ static LoRaParam_t LoRaParamInit = {LORAWAN_ADR_STATE, LORAWAN_DEFAULT_DATA_RATE
 
 static uint8_t AppDataBuff[LORAWAN_APP_DATA_BUFF_SIZE];
 lora_AppData_t AppData = { AppDataBuff,  0, 0 };
-static void sendMsg(void *context, uint8_t BufToSend[]);
+static LoraErrorStatus sendMsg(void *context, uint8_t BufToSend[]);
 
 /*Timer*/
 static TimerEvent_t TxTimer;
@@ -136,7 +136,7 @@ HAL_StatusTypeDef UART1status;
 
 
 /*RTC------------------*/
-#define SLEEPTIME 				15
+#define SLEEPTIME 													60 //seconds
 RTC_HandleTypeDef hrtc;
 static void MX_RTC_Init(void);
 static void test_stop_mode();
@@ -189,35 +189,36 @@ int main(void)
   {
 
 //	  test_stop_mode();
-
 //-----------------------------------------------------------------------------
-//	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
-//	  {
-//		PRINTF("LoRa routine \n\r");
+	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
+	  {
+		PRINTF("LoRa routine \n\r");
 
 		/*get uart msg (ultrasonic sensor)*/
 
 //		 HAL_GPIO_WritePin(GPIOA, x.Pin, 1);
-
-
-//		 while(rxBuf[4]==0){//
-//		   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY); //HAL_MAX_DELAY
+//		 while(rxBuf[4]==0){
+//		   UART1status = HAL_UART_Receive(&huart1, (uint8_t *)rxBuf, rxBuf_size, HAL_MAX_DELAY);
 //		 }
 //		   PRINTF("%s",&rxBuf);
 //		 HAL_GPIO_WritePin(GPIOA, x.Pin, 0);
 
+
 		/*get i2c msg (pressure sensor)*/
 
 		/*reset notification flag*/
-//		AppProcessRequest = LORA_RESET;
-		/*SendMsg*/
-//		sendMsg(NULL, rxBuf);
+		AppProcessRequest = LORA_RESET;
+
+		/*Send msg on TTN*/
+		LoraErrorStatus loraSendStatus = sendMsg(NULL, rxBuf);
+
 		//memset(rxBuf, 0 , sizeof(rxBuf));
+
+		/*Reset the buffer*/
 //		for(uint8_t i = 0; i< rxBuf_size; i++){
 //			rxBuf[i]=0;
 //		}
-
-//	}
+	}
     /* Handle UART commands */
     CMD_Process();
     if (LoraMacProcessRequest == LORA_SET)
@@ -227,12 +228,13 @@ int main(void)
       LoRaMacProcess();
     }
 
-      /*
-	   * low power section
-	   */
-      if(LORA_JoinStatus() == LORA_SET){
-    	  test_stop_mode();
-      }
+   /*
+   * low power section
+   */
+   if(LoraMacProcessRequest == LORA_RESET && LORA_JoinStatus() == LORA_SET){
+	 test_stop_mode();
+   }
+
 
   }
 }
@@ -307,9 +309,9 @@ static void LORA_McpsDataConfirm(void)
 /**
  * Send a message to TTN
  */
-static void sendMsg(void *context, uint8_t bufToSend[]){
+static LoraErrorStatus sendMsg(void *context, uint8_t bufToSend[]){
 
-	//if not joined, rejoind the network
+	//if not joined, rejoin the network
 	if(LORA_JoinStatus() != LORA_SET){
 		LORA_Join();
 		return;
@@ -352,8 +354,10 @@ static void sendMsg(void *context, uint8_t bufToSend[]){
 
 	AppData.BuffSize = i;
 
-	LORA_send(&AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+	LoraErrorStatus loraSendStatus = LORA_send(&AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
 	PRINTF("Main.c : sendMsg() \n\r");
+	PRINTF("LoraSendStatus : %d \n\r",loraSendStatus);
+	return loraSendStatus;
 }
 
 static void OnTxTimerEvent(void *context)
@@ -498,6 +502,9 @@ static void test_stop_mode()
     SystemClock_Config();
 
     PRINTF("wakeUp  \n\r");
+
+    //set LoRa process request
+    AppProcessRequest = LORA_SET;
 }
 
 
