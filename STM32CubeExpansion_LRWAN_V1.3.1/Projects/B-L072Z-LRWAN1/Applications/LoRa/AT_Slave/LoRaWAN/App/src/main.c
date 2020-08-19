@@ -102,7 +102,7 @@ LoraFlagStatus LoraMacProcessRequest = LORA_RESET;
 #define LORAWAN_DEFAULT_CLASS                       		CLASS_A
 #define LORAWAN_DEFAULT_DATA_RATE 							DR_0
 #define LORAWAN_ADR_STATE 									LORAWAN_ADR_ON
-#define APP_TX_DUTYCYCLE                            		240000 //2m
+#define APP_TX_DUTYCYCLE                            		60000 //
 
 static LoRaParam_t LoRaParamInit = {LORAWAN_ADR_STATE, LORAWAN_DEFAULT_DATA_RATE, LORAWAN_PUBLIC_NETWORK };
 
@@ -160,7 +160,7 @@ int main(void)
 	 /* Configure the hardware*/
 	 HW_Init();
 
-	 MX_RTC_Init();
+	 MX_RTC_Init(); // to do : make rtc run with lse
 
 	 /*Pins enable : 11 relais, 12 radio*/
 	 GPIO_InitTypeDef x;
@@ -182,7 +182,7 @@ int main(void)
 	 LORA_Join(); //this function need ~10s,
 //     LoraStartTx(TX_ON_TIMER) ;
 
-	 //  MX_USART1_UART_Init();
+	 MX_USART1_UART_Init();
 
   /* main loop*/
   while (1)
@@ -190,6 +190,7 @@ int main(void)
 
 //	  test_stop_mode();
 //-----------------------------------------------------------------------------
+
 	  if (AppProcessRequest == LORA_SET && LORA_JoinStatus() == LORA_SET)
 	  {
 		PRINTF("LoRa routine \n\r");
@@ -210,7 +211,7 @@ int main(void)
 		AppProcessRequest = LORA_RESET;
 
 		/*Send msg on TTN*/
-		LoraErrorStatus loraSendStatus = sendMsg(NULL, rxBuf);
+		sendMsg(NULL, rxBuf);
 
 		//memset(rxBuf, 0 , sizeof(rxBuf));
 
@@ -221,6 +222,7 @@ int main(void)
 	}
     /* Handle UART commands */
     CMD_Process();
+
     if (LoraMacProcessRequest == LORA_SET)
     {
       /*reset notification flag*/
@@ -228,11 +230,14 @@ int main(void)
       LoRaMacProcess();
     }
 
+
    /*
    * low power section
    */
-   if(LoraMacProcessRequest == LORA_RESET && LORA_JoinStatus() == LORA_SET){
+   if(LoraMacProcessRequest == LORA_RESET && LORA_JoinStatus() == LORA_SET && AppProcessRequest != LORA_SET ){
 	 test_stop_mode();
+//	 LPM_EnterLowPower();
+
    }
 
 
@@ -314,7 +319,7 @@ static LoraErrorStatus sendMsg(void *context, uint8_t bufToSend[]){
 	//if not joined, rejoin the network
 	if(LORA_JoinStatus() != LORA_SET){
 		LORA_Join();
-		return;
+		//return;
 	}
 
 	/*Ultrasound part*/
@@ -356,7 +361,12 @@ static LoraErrorStatus sendMsg(void *context, uint8_t bufToSend[]){
 
 	LoraErrorStatus loraSendStatus = LORA_send(&AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
 	PRINTF("Main.c : sendMsg() \n\r");
-	PRINTF("LoraSendStatus : %d \n\r",loraSendStatus);
+	if(loraSendStatus == 0){
+		PRINTF("LoraSendStatus : ok \n\r");
+	}else{
+		PRINTF("LoraSendStatus : error \n\r");
+	}
+
 	return loraSendStatus;
 }
 
@@ -376,7 +386,6 @@ static void LoraStartTx(TxEventType_t EventType)
   if (EventType == TX_ON_TIMER)
   {
     /* send everytime timer elapses */
-
     TimerInit(&TxTimer, OnTxTimerEvent);
     TimerSetValue(&TxTimer,  APP_TX_DUTYCYCLE);
     OnTxTimerEvent(NULL);
@@ -450,7 +459,7 @@ static void MX_RTC_Init(void)
   }
   /** Enable the WakeUp
   */
-  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc,15, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK)
+  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc,SLEEPTIME, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK) // 15
   {
     Error_Handler();
   }
@@ -466,13 +475,76 @@ static void MX_RTC_Init(void)
   * @brief  RTC Wake Up callback
   * @param  None
   * @retval None
+  * called into hw_rtc.c L335
   */
 void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
 {
-  /* Clear Wake Up Flag */
-  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+	if(__HAL_PWR_GET_FLAG(PWR_FLAG_WU) != RESET){ // __HAL_PWR_GET_FLAG(PWR_FLAG_WU)
+	  /* Clear Wake Up Flag */
+	  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+
+	  //set LoRa process request
+	  AppProcessRequest = LORA_SET;
+	  PRINTF("WakeUpTimerEventCallback \n\r");
+	}
 }
 
+
+/*
+//turn radio to off mode : TO TEST
+void main_rf_disable(void)
+{
+    // SX1276 SPI instruction to read version
+    uint8_t sx1276_cmd_rd_reg_version[2] =
+    {
+        0x42,   // Read bit + RegVersion
+        0x00,   // Data
+    };
+
+    // data
+    uint8_t data[2];
+
+    // SX1276 SPI instruction to put it into Sleep Mode
+    uint8_t sx1276_cmd_sleep_mode[2] =
+    {
+        0x81,   // Write bit + RegOpMode
+        0x00,   // Sleep Mode
+    };
+
+    // Power up TCXO
+    HAL_GPIO_WritePin(RADIO_TCXO_VCC_PORT, RADIO_TCXO_VCC_PIN , GPIO_PIN_SET);
+    HAL_Delay(10); // Wait at least 5 ms
+
+    // Reset
+    HAL_GPIO_WritePin(RADIO_RESET_PORT, RADIO_RESET_PIN, GPIO_PIN_RESET);
+    HAL_Delay(10);  // Wait at least 1 ms
+    HAL_GPIO_WritePin(RADIO_RESET_PORT, RADIO_RESET_PIN, GPIO_PIN_SET);
+    HAL_Delay(10);  // Wait at least 6 ms
+
+    // CS low
+    HAL_GPIO_WritePin(RADIO_NSS_PORT, RADIO_NSS_PIN, GPIO_PIN_RESET);
+    // Read RegVersion register
+    HAL_SPI_TransmitReceive(&hspi, sx1276_cmd_rd_reg_version, data, 2, HAL_MAX_DELAY);
+    // CS high
+    HAL_GPIO_WritePin(RADIO_NSS_PORT, RADIO_NSS_PIN, GPIO_PIN_SET);
+    HAL_Delay(10);
+
+    // CS low
+    HAL_GPIO_WritePin(RADIO_NSS_PORT, RADIO_NSS_PIN, GPIO_PIN_RESET);
+    // Select Sleep Mode in RegOpMode register
+    HAL_SPI_Transmit(&hspi, sx1276_cmd_sleep_mode, 2, HAL_MAX_DELAY);
+    // CS high
+    HAL_GPIO_WritePin(RADIO_NSS_PORT, RADIO_NSS_PIN, GPIO_PIN_SET);
+    HAL_Delay(10);
+
+    // Set RF Switch to receive mode
+    HAL_GPIO_WritePin(RADIO_ANT_SWITCH_PORT_RX, RADIO_ANT_SWITCH_PIN_RX, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(RADIO_ANT_SWITCH_PORT_TX_RFO, RADIO_ANT_SWITCH_PIN_TX_RFO, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(RADIO_ANT_SWITCH_PORT_TX_BOOST, RADIO_ANT_SWITCH_PIN_TX_BOOST, GPIO_PIN_RESET);
+
+    // Power down TCXO
+    HAL_GPIO_WritePin(RADIO_TCXO_VCC_PORT, RADIO_TCXO_VCC_PIN , GPIO_PIN_RESET);
+}*/
 
 
 /**
@@ -485,12 +557,14 @@ static void test_stop_mode()
 	//Warning: don't delete this delay
 	HAL_Delay(100);
 
+
 	//clear rtc event flag
 	__HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&hrtc, RTC_FLAG_WUTF);
 
     // set RTC wakeup
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
     HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, SLEEPTIME, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
+
 
     // go to stop mode
     __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);  // clear wakeup flag
@@ -500,11 +574,11 @@ static void test_stop_mode()
 
     //after wake up
     SystemClock_Config();
+    //LPM_ExitStopMode();
 
     PRINTF("wakeUp  \n\r");
 
-    //set LoRa process request
-    AppProcessRequest = LORA_SET;
+
 }
 
 

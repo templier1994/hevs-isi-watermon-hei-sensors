@@ -360,6 +360,8 @@ void HW_RTC_IrqHandler(void)
 
   HAL_RTCEx_WakeUpTimerIRQHandler(&hrtc);
 
+  /*from main.c*/
+  HAL_RTCEx_WakeUpTimerEventCallback(&hrtc);
 
   /* Clear the EXTI's line Flag for RTC Alarm */
   __HAL_RTC_ALARM_EXTI_CLEAR_FLAG();
